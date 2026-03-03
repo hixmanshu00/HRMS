@@ -235,11 +235,3 @@ Errors are surfaced in the UI as inline error messages and/or toast notification
 
 ---
 
-## Next Steps / Possible Enhancements
-
-- Authentication & role-based access control.
-- Pagination and search for large employee lists.
-- More detailed attendance analytics and reports.
-- Inline editing for employees and attendance records.
-- Docker-based setup for repeatable local/dev environments.
-
