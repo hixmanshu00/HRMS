@@ -28,6 +28,8 @@ export default function EmployeeDirectory() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(
     null
@@ -87,19 +89,16 @@ export default function EmployeeDirectory() {
   };
 
   const handleDeleteEmployee = async (employeeId: string) => {
-    const employee = employees.find((e) => e.employee_id === employeeId);
-    const nameLabel = employee ? `${employee.full_name} (${employee.employee_id})` : employeeId;
-    const confirmed = window.confirm(
-      `Delete employee ${nameLabel}?\nTheir attendance records will also be removed.`
-    );
-    if (!confirmed) return;
-
+    setDeleteLoading(true);
     try {
       await deleteEmployee(employeeId);
       setEmployees((prev) => prev.filter((e) => e.employee_id !== employeeId));
       showToast("success", "Employee deleted.");
     } catch (err: any) {
       showToast("error", err.message ?? "Unable to delete employee.");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -239,7 +238,7 @@ export default function EmployeeDirectory() {
                           <Button
                             variant="ghost"
                             className="text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
-                            onClick={() => handleDeleteEmployee(emp.employee_id)}
+                            onClick={() => setDeleteTarget(emp)}
                           >
                             Remove
                           </Button>
@@ -336,6 +335,65 @@ export default function EmployeeDirectory() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-xl shadow-slate-950/80">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight">
+                  Remove employee
+                </h2>
+                <p className="text-xs text-slate-400">
+                  This will also remove all of their attendance records.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="px-2 py-1 text-xs text-slate-400 hover:text-slate-100"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Close
+              </Button>
+            </div>
+
+            <div className="space-y-3 text-sm text-slate-200">
+              <p>
+                Are you sure you want to delete{" "}
+                <span className="font-semibold">
+                  {deleteTarget.full_name} ({deleteTarget.employee_id})
+                </span>
+                ?
+              </p>
+              <p className="text-xs text-slate-400">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2 text-sm">
+              <Button
+                type="button"
+                variant="ghost"
+                className="px-3"
+                disabled={deleteLoading}
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="px-3 text-rose-100"
+                loading={deleteLoading}
+                onClick={() => handleDeleteEmployee(deleteTarget.employee_id)}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       )}
