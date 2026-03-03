@@ -8,13 +8,15 @@ The app lets an admin manage **employees** and track **daily attendance** with a
 ## Features
 
 - **Employee management**
-  - Add employee with ID, name, email, department
+  - Add employee with full name, email, department
+  - Employee IDs are generated sequentially on the server starting from `101`
   - List all employees in a sortable-style table
   - Delete employee (and their attendance records)
   - Server-side validation (required fields, email format, duplicate handling)
 
 - **Attendance management**
   - Mark attendance (date + Present/Absent) for an employee
+  - Quick “Mark today present” action directly from the employee directory
   - View attendance records per employee
   - Optional date range filter (from / to)
 
@@ -54,17 +56,37 @@ The app lets an admin manage **employees** and track **daily attendance** with a
 hrmss/
   backend/
     app/
-      main.py        # FastAPI app, routes, DB access
-      schemas.py     # Pydantic models (employees, attendance)
+      main.py          # FastAPI app factory, router wiring, error handlers
+      schemas.py       # Pydantic models (employees, attendance)
+      core/
+        config.py      # Settings and .env loading
+        serializers.py # Mongo → API model serializers
+      db/
+        mongo.py       # MongoDB client and db helpers
+      api/
+        routes/
+          system.py    # /health
+          employees.py # /employees CRUD
+          attendance.py# /attendance, /attendance/by-employee/{employee_id}
+          dashboard.py # /dashboard/summary
     requirements.txt # Python dependencies
 
   frontend/
     app/
-      layout.tsx     # Root layout
-      page.tsx       # Dashboard entry point
-      globals.css    # Global styles + Tailwind
+      layout.tsx       # Root layout (AppShell + sidebar)
+      page.tsx         # Redirects to /dashboard
+      dashboard/
+        page.tsx       # Dashboard summary view
+      employees/
+        page.tsx       # Employees directory view
+      attendance/
+        page.tsx       # Attendance view
+      globals.css      # Global styles + Tailwind
     components/
-      DashboardPage.tsx # Main dashboard UI
+      layout/AppShell.tsx      # Shared shell with sidebar + header
+      dashboard/SummaryCards.tsx # Dashboard KPI cards
+      employees/EmployeeDirectory.tsx # Employee table + add/delete UI
+      attendance/AttendanceView.tsx   # Attendance log + mark form
       ui.tsx            # Reusable UI primitives (Button, Input, Card, etc.)
     lib/
       api.ts        # Frontend API client wrappers
@@ -138,7 +160,7 @@ Useful endpoints:
 - `POST /employees` – create employee
 - `DELETE /employees/{employee_id}` – delete employee
 - `POST /attendance` – mark attendance
-- `GET /employees/{employee_id}/attendance` – employee attendance (optional `start_date`, `end_date` query params)
+- `GET /attendance/by-employee/{employee_id}` – employee attendance (optional `start_date`, `end_date` query params)
 - `GET /dashboard/summary` – dashboard counts
 
 ---
@@ -162,17 +184,22 @@ Make sure the backend (`http://localhost:8000`) is running and matches the value
 ## How to Use the App
 
 1. **Open** `http://localhost:3000` in your browser.
-2. The top of the dashboard shows:
+2. The **Dashboard** page shows:
    - Total employees
    - Present today
    - Absent today
-3. Use the **Employees** tab:
-   - Right column: add new employees (ID, name, email, department).
-   - Left column: view the employee directory, including total present days, and delete employees if needed.
-4. Switch to the **Attendance** tab:
-   - Right column: mark attendance (select employee, choose date, pick Present/Absent).
-   - Left column: select an employee and optionally a date range to see their attendance records.
-5. The UI shows loading states, empty states, and error messages (e.g., duplicate employee, invalid attendance).
+3. Use the **sidebar navigation**:
+   - **Dashboard**: high-level metrics only.
+   - **Employees**: full-width employee table with total present days and actions.
+   - **Attendance**: attendance log and mark-attendance form.
+4. On the **Employees** page:
+   - Click **Add employee** to open a modal, enter name/email/department, and save.
+   - Use **Remove** to delete an employee (a confirmation dialog appears) and cascade-delete their attendance.
+   - Use **Mark today present** in the table to quickly mark today as Present; the “Present days” pill updates immediately.
+5. On the **Attendance** page:
+   - Choose an employee and optional date range to see their attendance history.
+   - Use the form on the right to mark attendance for any date as Present/Absent.
+6. The UI shows loading states, empty states, and clear error messages (e.g., invalid email, duplicate employee, duplicate attendance).
 
 ---
 
@@ -181,7 +208,8 @@ Make sure the backend (`http://localhost:8000`) is running and matches the value
 - **Employee creation**
   - All fields are required.
   - Email must be a valid email address.
-  - Employee ID and email are enforced as unique on the server (400 error if duplicate).
+  - Email is enforced as unique on the server (400 error if duplicate).
+  - Employee ID is generated server-side and guaranteed to be unique.
 
 - **Attendance**
   - Employee must exist; otherwise a 404 is returned.
