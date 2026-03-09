@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from pymongo.errors import ConfigurationError, ServerSelectionTimeoutError
 
 from app.api.routes import attendance, dashboard, employees, system
+from app.core.config import settings
 from app.db.mongo import close_mongo, connect_to_mongo
 
 
@@ -11,7 +12,7 @@ app = FastAPI(title="HRMS Lite API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
